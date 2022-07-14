@@ -100,8 +100,26 @@ namespace Steam_Desktop_Authenticator
                             SteamGuardAccount maFile = JsonConvert.DeserializeObject<SteamGuardAccount>(fileContents);
                             if (maFile.Session.SteamID != 0)
                             {
-                                mManifest.SaveAccount(maFile, false);
-                                MessageBox.Show("Account Imported!");
+                                if (maFile.Proxy == null)
+                                {
+                                    ProxyInputForm proxyInputForm = new ProxyInputForm();
+                                    var result = proxyInputForm.ShowDialog();
+                                    if (result == DialogResult.OK)
+                                    {
+                                        maFile.Proxy = proxyInputForm.proxy;
+                                    }
+                                    else
+                                    {
+                                        maFile.Proxy = new Proxy();
+                                    }
+                                    mManifest.SaveAccount(maFile, false);
+                                    MessageBox.Show("Account Imported!");
+                                }
+                                else
+                                {
+                                    mManifest.SaveAccount(maFile, false);
+                                    MessageBox.Show("Account Imported!");
+                                }
                             }
                             else
                             {

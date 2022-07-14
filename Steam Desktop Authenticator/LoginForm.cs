@@ -62,8 +62,25 @@ namespace Steam_Desktop_Authenticator
                 RefreshLogin(username, password);
                 return;
             }
+            UserLogin userLogin = null;
+            Proxy tempProxy = new Proxy();
+            if (account == null || account.Proxy == null)
+            {
+                ProxyInputForm proxyInputForm = new ProxyInputForm();
+                var result = proxyInputForm.ShowDialog();
+                
+                if (result == DialogResult.OK)
+                {
+                    tempProxy = proxyInputForm.proxy;
+                    userLogin = new UserLogin(username, password, tempProxy);
+                }
+            }
+            else
+            {
+                userLogin = new UserLogin(username, password, account.Proxy);
+            }
 
-            var userLogin = new UserLogin(username, password);
+            
             LoginResult response = LoginResult.BadCredentials;
 
             while ((response = userLogin.DoLogin()) != LoginResult.LoginOkay)
@@ -125,6 +142,15 @@ namespace Steam_Desktop_Authenticator
 
             SessionData session = userLogin.Session;
             AuthenticatorLinker linker = new AuthenticatorLinker(session);
+            if (account == null)
+            {
+                linker.LinkedAccount.Proxy = tempProxy;
+            }
+            else
+            {
+                linker.LinkedAccount.Proxy = account.Proxy;
+            }
+            
 
             AuthenticatorLinker.LinkResult linkResponse = AuthenticatorLinker.LinkResult.GeneralFailure;
 
@@ -268,7 +294,7 @@ namespace Steam_Desktop_Authenticator
 
             account.FullyEnrolled = true;
 
-            UserLogin mUserLogin = new UserLogin(username, password);
+            UserLogin mUserLogin = new UserLogin(username, password, account.Proxy);
             LoginResult response = LoginResult.BadCredentials;
 
             while ((response = mUserLogin.DoLogin()) != LoginResult.LoginOkay)

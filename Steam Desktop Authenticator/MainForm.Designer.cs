@@ -69,11 +69,14 @@
             this.txtAccSearch = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.panelButtons = new System.Windows.Forms.Panel();
+            this.contextEditProxy = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.groupBox1.SuspendLayout();
             this.groupAccount.SuspendLayout();
             this.menuStrip.SuspendLayout();
             this.menuStripTray.SuspendLayout();
             this.panelButtons.SuspendLayout();
+            this.contextEditProxy.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnSteamLogin
@@ -140,6 +143,7 @@
             this.listAccounts.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.listAccounts.ContextMenuStrip = this.contextEditProxy;
             this.listAccounts.FormattingEnabled = true;
             this.listAccounts.Location = new System.Drawing.Point(12, 217);
             this.listAccounts.Name = "listAccounts";
@@ -431,6 +435,20 @@
             this.panelButtons.TabIndex = 14;
             this.panelButtons.SizeChanged += new System.EventHandler(this.panelButtons_SizeChanged);
             // 
+            // contextEditProxy
+            // 
+            this.contextEditProxy.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem1});
+            this.contextEditProxy.Name = "contextEditProxy";
+            this.contextEditProxy.Size = new System.Drawing.Size(181, 48);
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.toolStripMenuItem1.Text = "Edit Proxy";
+            this.toolStripMenuItem1.Click += new System.EventHandler(this.toolStripMenuItem1_Click);
+            // 
             // MainForm
             // 
             this.AcceptButton = this.btnCopy;
@@ -468,6 +486,7 @@
             this.menuStrip.PerformLayout();
             this.menuStripTray.ResumeLayout(false);
             this.panelButtons.ResumeLayout(false);
+            this.contextEditProxy.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -512,6 +531,8 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.Button btnCopy;
         private System.Windows.Forms.Panel panelButtons;
+        private System.Windows.Forms.ContextMenuStrip contextEditProxy;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
     }
 }
 

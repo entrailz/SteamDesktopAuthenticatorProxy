@@ -131,8 +131,13 @@ namespace Steam_Desktop_Authenticator
 
             string oText = btnTradeConfirmations.Text;
             btnTradeConfirmations.Text = "Loading...";
-            await RefreshAccountSession(currentAccount);
+            var result = await RefreshAccountSession(currentAccount);
             btnTradeConfirmations.Text = oText;
+            if (!result)
+            {
+                return;
+            }
+            
 
             try
             {
@@ -742,6 +747,23 @@ namespace Steam_Desktop_Authenticator
                 but.Width = panelButtons.Width / totButtons;
                 but.Location = curPos;
                 curPos = new Point(curPos.X + but.Width, 0);
+            }
+        }
+
+        private void toolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            
+            ProxyInputForm proxyInputForm = new ProxyInputForm(allAccounts[listAccounts.SelectedIndex]);
+            var result = proxyInputForm.ShowDialog();
+            
+            if (result == DialogResult.OK)
+            {
+                allAccounts[listAccounts.SelectedIndex].Proxy.ProxyHost = proxyInputForm.proxy.ProxyHost;
+                allAccounts[listAccounts.SelectedIndex].Proxy.ProxyPort = proxyInputForm.proxy.ProxyPort;
+                allAccounts[listAccounts.SelectedIndex].Proxy.ProxyUsername = proxyInputForm.proxy.ProxyUsername;
+                allAccounts[listAccounts.SelectedIndex].Proxy.ProxyPassword = proxyInputForm.proxy.ProxyPassword;
+                manifest.SaveAccount(allAccounts[listAccounts.SelectedIndex], false, null);
+                MessageBox.Show("Proxy configuration updated.");
             }
         }
     }

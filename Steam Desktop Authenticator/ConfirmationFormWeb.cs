@@ -29,6 +29,10 @@ namespace Steam_Desktop_Authenticator
             this.Text = String.Format("Trade Confirmations - {0}", steamAccount.AccountName);
 
             CefSettings settings = new CefSettings();
+            if (this.steamAccount.Proxy != null && this.steamAccount.Proxy.ProxyHost != null)
+            {
+                CefSharpSettings.Proxy = new ProxyOptions(steamAccount.Proxy.ProxyHost, steamAccount.Proxy.ProxyPort.ToString(), steamAccount.Proxy.ProxyUsername, steamAccount.Proxy.ProxyPassword);
+            }
             settings.PersistSessionCookies = false;
             settings.Locale = "en-US";
             settings.UserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 6P Build/XXXXX; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/47.0.2526.68 Mobile Safari/537.36";
@@ -38,7 +42,6 @@ namespace Steam_Desktop_Authenticator
             {
                 Cef.Initialize(settings);
             }
-
             browser = new ChromiumWebBrowser(steamAccount.GenerateConfirmationURL())
             {
                 Dock = DockStyle.Fill,
