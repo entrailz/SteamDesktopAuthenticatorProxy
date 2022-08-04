@@ -8,13 +8,14 @@ namespace Steam_Desktop_Authenticator
     {
         public SteamGuardAccount account;
         public LoginType LoginReason;
+        public MainForm mainForm;
 
-        public LoginForm(LoginType loginReason = LoginType.Initial, SteamGuardAccount account = null)
+        public LoginForm(LoginType loginReason = LoginType.Initial, SteamGuardAccount account = null, MainForm mainForm = null)
         {
             InitializeComponent();
             this.LoginReason = loginReason;
             this.account = account;
-
+            this.mainForm = mainForm;
             try
             {
                 if (this.LoginReason != LoginType.Initial)
@@ -82,61 +83,71 @@ namespace Steam_Desktop_Authenticator
 
             
             LoginResult response = LoginResult.BadCredentials;
-
-            while ((response = userLogin.DoLogin()) != LoginResult.LoginOkay)
+            try
             {
-                switch (response)
+                while ((response = userLogin.DoLogin()) != LoginResult.LoginOkay)
                 {
-                    case LoginResult.NeedEmail:
-                        InputForm emailForm = new InputForm("Enter the code sent to your email:");
-                        emailForm.ShowDialog();
-                        if (emailForm.Canceled)
-                        {
+                    switch (response)
+                    {
+                        case LoginResult.NeedEmail:
+                            InputForm emailForm = new InputForm("Enter the code sent to your email:");
+                            emailForm.ShowDialog();
+                            if (emailForm.Canceled)
+                            {
+                                this.Close();
+                                return;
+                            }
+
+                            userLogin.EmailCode = emailForm.txtBox.Text;
+                            break;
+
+                        case LoginResult.NeedCaptcha:
+                            CaptchaForm captchaForm = new CaptchaForm(userLogin.CaptchaGID);
+                            captchaForm.ShowDialog();
+                            if (captchaForm.Canceled)
+                            {
+                                this.Close();
+                                return;
+                            }
+
+                            userLogin.CaptchaText = captchaForm.CaptchaCode;
+                            break;
+
+                        case LoginResult.Need2FA:
+                            MessageBox.Show("This account already has a mobile authenticator linked to it.\nRemove the old authenticator from your Steam account before adding a new one.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             this.Close();
                             return;
-                        }
 
-                        userLogin.EmailCode = emailForm.txtBox.Text;
-                        break;
-
-                    case LoginResult.NeedCaptcha:
-                        CaptchaForm captchaForm = new CaptchaForm(userLogin.CaptchaGID);
-                        captchaForm.ShowDialog();
-                        if (captchaForm.Canceled)
-                        {
+                        case LoginResult.BadRSA:
+                            MessageBox.Show("Error logging in: Steam returned \"BadRSA\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             this.Close();
                             return;
-                        }
 
-                        userLogin.CaptchaText = captchaForm.CaptchaCode;
-                        break;
+                        case LoginResult.BadCredentials:
+                            MessageBox.Show("Error logging in: Username or password was incorrect.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            this.Close();
+                            return;
 
-                    case LoginResult.Need2FA:
-                        MessageBox.Show("This account already has a mobile authenticator linked to it.\nRemove the old authenticator from your Steam account before adding a new one.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
+                        case LoginResult.TooManyFailedLogins:
+                            MessageBox.Show("Error logging in: Too many failed logins, try again later.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            this.Close();
+                            return;
 
-                    case LoginResult.BadRSA:
-                        MessageBox.Show("Error logging in: Steam returned \"BadRSA\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
-
-                    case LoginResult.BadCredentials:
-                        MessageBox.Show("Error logging in: Username or password was incorrect.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
-
-                    case LoginResult.TooManyFailedLogins:
-                        MessageBox.Show("Error logging in: Too many failed logins, try again later.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
-
-                    case LoginResult.GeneralFailure:
-                        MessageBox.Show("Error logging in: Steam returned \"GeneralFailure\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
+                        case LoginResult.GeneralFailure:
+                            MessageBox.Show("Error logging in: Steam returned \"GeneralFailure\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            this.Close();
+                            return;
+                    }
                 }
             }
+            catch (SteamGuardAccount.ProxyConnectionException ex)
+            {
+                MessageBox.Show($"Proxy error: {ex.Message}");
+                mainForm.AddErrorToErrorBox($"{username} Error: {ex.Message}");
+                this.Close();
+                return;
+            }
+            
 
             //Login succeeded
 
@@ -296,48 +307,58 @@ namespace Steam_Desktop_Authenticator
 
             UserLogin mUserLogin = new UserLogin(username, password, account.Proxy);
             LoginResult response = LoginResult.BadCredentials;
-
-            while ((response = mUserLogin.DoLogin()) != LoginResult.LoginOkay)
+            try
             {
-                switch (response)
+                while ((response = mUserLogin.DoLogin()) != LoginResult.LoginOkay)
                 {
-                    case LoginResult.NeedCaptcha:
-                        CaptchaForm captchaForm = new CaptchaForm(mUserLogin.CaptchaGID);
-                        captchaForm.ShowDialog();
-                        if (captchaForm.Canceled)
-                        {
+                    switch (response)
+                    {
+                        case LoginResult.NeedCaptcha:
+                            CaptchaForm captchaForm = new CaptchaForm(mUserLogin.CaptchaGID);
+                            captchaForm.ShowDialog();
+                            if (captchaForm.Canceled)
+                            {
+                                this.Close();
+                                return;
+                            }
+
+                            mUserLogin.CaptchaText = captchaForm.CaptchaCode;
+                            break;
+
+                        case LoginResult.Need2FA:
+                            mUserLogin.TwoFactorCode = account.GenerateSteamGuardCodeForTime(steamTime);
+                            break;
+
+                        case LoginResult.BadRSA:
+                            MessageBox.Show("Error logging in: Steam returned \"BadRSA\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             this.Close();
                             return;
-                        }
 
-                        mUserLogin.CaptchaText = captchaForm.CaptchaCode;
-                        break;
+                        case LoginResult.BadCredentials:
+                            MessageBox.Show("Error logging in: Username or password was incorrect.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            this.Close();
+                            return;
 
-                    case LoginResult.Need2FA:
-                        mUserLogin.TwoFactorCode = account.GenerateSteamGuardCodeForTime(steamTime);
-                        break;
+                        case LoginResult.TooManyFailedLogins:
+                            MessageBox.Show("Error logging in: Too many failed logins, try again later.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            this.Close();
+                            return;
 
-                    case LoginResult.BadRSA:
-                        MessageBox.Show("Error logging in: Steam returned \"BadRSA\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
-
-                    case LoginResult.BadCredentials:
-                        MessageBox.Show("Error logging in: Username or password was incorrect.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
-
-                    case LoginResult.TooManyFailedLogins:
-                        MessageBox.Show("Error logging in: Too many failed logins, try again later.", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
-
-                    case LoginResult.GeneralFailure:
-                        MessageBox.Show("Error logging in: Steam returned \"GeneralFailure\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        this.Close();
-                        return;
+                        case LoginResult.GeneralFailure:
+                            MessageBox.Show("Error logging in: Steam returned \"GeneralFailure\".", "Login Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            this.Close();
+                            return;
+                    }
                 }
             }
+            catch (SteamGuardAccount.ProxyConnectionException ex)
+            {
+                MessageBox.Show($"Proxy error: {ex.Message}");
+                mainForm.AddErrorToErrorBox($"{username} Error: {ex.Message}");
+                this.Close();
+                return;
+            }
+            
 
             account.Session = mUserLogin.Session;
 

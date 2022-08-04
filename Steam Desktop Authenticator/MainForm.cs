@@ -39,6 +39,12 @@ namespace Steam_Desktop_Authenticator
             passKey = key;
         }
 
+        public void AddErrorToErrorBox(string errorMessage)
+        {
+            accountErrorBox.Items.Add($"({DateTime.Now}): {errorMessage}");
+            accountErrorBox.TopIndex = accountErrorBox.Items.Count - 1;
+        }
+
         public void StartSilent(bool silent)
         {
             startSilent = silent;
@@ -120,7 +126,7 @@ namespace Steam_Desktop_Authenticator
 
         private void btnSteamLogin_Click(object sender, EventArgs e)
         {
-            var loginForm = new LoginForm();
+            var loginForm = new LoginForm(mainForm: this);
             loginForm.ShowDialog();
             this.loadAccountsList();
         }
@@ -131,7 +137,16 @@ namespace Steam_Desktop_Authenticator
 
             string oText = btnTradeConfirmations.Text;
             btnTradeConfirmations.Text = "Loading...";
-            var result = await RefreshAccountSession(currentAccount);
+            bool result = false;
+            try
+            {
+                result = await RefreshAccountSession(currentAccount);
+            }
+            catch (SteamGuardAccount.ProxyConnectionException ex)
+            {
+                AddErrorToErrorBox($"{currentAccount.AccountName} Error: {ex.Message}");
+            }
+            
             btnTradeConfirmations.Text = oText;
             if (!result)
             {
@@ -335,7 +350,15 @@ namespace Steam_Desktop_Authenticator
 
         private async void menuRefreshSession_Click(object sender, EventArgs e)
         {
-            bool status = await RefreshAccountSession(currentAccount);
+            bool status = false;
+            try
+            {
+                status = await RefreshAccountSession(currentAccount);
+            }
+            catch (Exception ex)
+            {
+                AddErrorToErrorBox($"{currentAccount.AccountName} Error: {ex.Message}");
+            }
             if (status == true)
             {
                 MessageBox.Show("Your session has been refreshed.", "Session refresh", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -482,6 +505,10 @@ namespace Steam_Desktop_Authenticator
                         PromptRefreshLogin(acc);
                         break; //Don't bombard a user with login refresh requests if they have multiple accounts. Give them a few seconds to disable the autocheck option if they want.
                     }
+                    catch (SteamGuardAccount.ProxyConnectionException ex)
+                    {
+                        AddErrorToErrorBox($"{acc.AccountName} Error: {ex.Message}");
+                    }
                     catch (WebException)
                     {
 
@@ -553,7 +580,7 @@ namespace Steam_Desktop_Authenticator
         /// <param name="account">The account to refresh</param>
         private void PromptRefreshLogin(SteamGuardAccount account)
         {
-            var loginForm = new LoginForm(LoginForm.LoginType.Refresh, account);
+            var loginForm = new LoginForm(LoginForm.LoginType.Refresh, account, mainForm: this);
             loginForm.ShowDialog();
         }
 
@@ -752,7 +779,6 @@ namespace Steam_Desktop_Authenticator
 
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            
             ProxyInputForm proxyInputForm = new ProxyInputForm(allAccounts[listAccounts.SelectedIndex]);
             var result = proxyInputForm.ShowDialog();
             
