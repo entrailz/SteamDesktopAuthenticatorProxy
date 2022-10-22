@@ -361,6 +361,7 @@ namespace Steam_Desktop_Authenticator
             
 
             account.Session = mUserLogin.Session;
+            account.lastError = default(DateTime);
 
             HandleManifest(man, true);
         }

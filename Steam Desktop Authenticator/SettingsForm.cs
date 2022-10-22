@@ -17,6 +17,7 @@ namespace Steam_Desktop_Authenticator
 
             chkPeriodicChecking.Checked = manifest.PeriodicChecking;
             numPeriodicInterval.Value = manifest.PeriodicCheckingInterval;
+            numErrorInterval.Value = manifest.MinuteErrorInterval;
             chkCheckAll.Checked = manifest.CheckAllAccounts;
             chkConfirmMarket.Checked = manifest.AutoConfirmMarketTransactions;
             chkConfirmTrades.Checked = manifest.AutoConfirmTrades;
@@ -46,6 +47,7 @@ namespace Steam_Desktop_Authenticator
         {
             manifest.PeriodicChecking = chkPeriodicChecking.Checked;
             manifest.PeriodicCheckingInterval = (int)numPeriodicInterval.Value;
+            manifest.MinuteErrorInterval = (int)numErrorInterval.Value;
             manifest.CheckAllAccounts = chkCheckAll.Checked;
             manifest.AutoConfirmMarketTransactions = chkConfirmMarket.Checked;
             manifest.AutoConfirmTrades = chkConfirmTrades.Checked;

@@ -24,6 +24,7 @@ namespace Steam_Desktop_Authenticator
 
         public ProxyInputForm(SteamGuardAccount account)
         {
+            Console.WriteLine(account.Proxy.ProxyHost);
             InitializeComponent();
             _account = account;
             if (_account.Proxy.ProxyHost != null)

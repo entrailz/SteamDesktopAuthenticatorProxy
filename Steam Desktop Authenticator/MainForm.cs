@@ -146,6 +146,10 @@ namespace Steam_Desktop_Authenticator
             {
                 AddErrorToErrorBox($"{currentAccount.AccountName} Error: {ex.Message}");
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
             
             btnTradeConfirmations.Text = oText;
             if (!result)
@@ -457,6 +461,11 @@ namespace Steam_Desktop_Authenticator
             }
         }
 
+        async Task PutTaskDelay(int time)
+        {
+            await Task.Delay(time);
+        }
+
         private async void timerTradesPopup_Tick(object sender, EventArgs e)
         {
             if (currentAccount == null || popupFrm.Visible) return;
@@ -477,6 +486,18 @@ namespace Steam_Desktop_Authenticator
 
                 foreach (var acc in accs)
                 {
+                    if (acc.lastError != null)
+                    {
+                        DateTime accLastError = acc.lastError;
+                        DateTime now = DateTime.Now;
+
+                        TimeSpan ts = now - accLastError;
+
+                        if (ts.TotalMinutes < 30)
+                        {
+                            continue;
+                        }
+                    }
                     try
                     {
                         Confirmation[] tmp = await acc.FetchConfirmationsAsync();
@@ -496,22 +517,61 @@ namespace Steam_Desktop_Authenticator
                     catch (SteamGuardAccount.WGTokenInvalidException)
                     {
                         lblStatus.Text = "Refreshing session";
-                        await acc.RefreshSessionAsync(); //Don't save it to the HDD, of course. We'd need their encryption passkey again.
+                        try
+                        {
+                            await acc.RefreshSessionAsync(); //Don't save it to the HDD, of course. We'd need their encryption passkey again
+                        }
+                        catch (SteamGuardAccount.ProxyConnectionException ex)
+                        {
+                            AddErrorToErrorBox($"{acc.AccountName} Error: {ex.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            acc.lastError = DateTime.Now;
+                            AddErrorToErrorBox($"{acc.AccountName} Error: Attempt to refresh session resulted in an error.");
+                        }
                         lblStatus.Text = "";
                     }
                     catch (SteamGuardAccount.WGTokenExpiredException)
                     {
                         //Prompt to relogin
-                        PromptRefreshLogin(acc);
-                        break; //Don't bombard a user with login refresh requests if they have multiple accounts. Give them a few seconds to disable the autocheck option if they want.
+                        //PromptRefreshLogin(acc);
+                        try
+                        {
+                            bool refreshed = await acc.RefreshSessionAsync();
+                            if (!refreshed)
+                            {
+                                acc.lastError = DateTime.Now;
+                                AddErrorToErrorBox($"{acc.AccountName} Error: Wanted to relogin, refresh didn't work.");
+                            }
+                        }
+                        catch (SteamGuardAccount.ProxyConnectionException ex)
+                        {
+                            AddErrorToErrorBox($"{acc.AccountName} Error: {ex.Message}");
+                        }
+                        catch (Exception ex)
+                        {
+                            acc.lastError = DateTime.Now;
+                            AddErrorToErrorBox($"{acc.AccountName} Error: Wanted to relogin, refresh didn't work.");
+                        }
+                        continue; //Don't bombard a user with login refresh requests if they have multiple accounts. Give them a few seconds to disable the autocheck option if they want.
                     }
                     catch (SteamGuardAccount.ProxyConnectionException ex)
                     {
-                        AddErrorToErrorBox($"{acc.AccountName} Error: {ex.Message}");
+                        if (ex.Message.Contains("Too Many Requests"))
+                        {
+                            AddErrorToErrorBox($"{acc.AccountName} Error: {ex.Message}, sleeping this account.");
+                            acc.lastError = DateTime.Now;
+                        }
+                        else
+                        {
+                            AddErrorToErrorBox($"{acc.AccountName} Error: {ex.Message}");
+                        }
+                        continue; // Move onto the next account.
                     }
-                    catch (WebException)
+                    catch (Exception)
                     {
-
+                        continue; // Move onto the next account.
                     }
                 }
 
@@ -564,13 +624,20 @@ namespace Steam_Desktop_Authenticator
                 bool refreshed = await account.RefreshSessionAsync();
                 return refreshed; //No exception thrown means that we either successfully refreshed the session or there was a different issue preventing us from doing so.
             }
+            catch (SteamGuardAccount.ProxyConnectionException ex)
+            {
+                Console.WriteLine("Here");
+                AddErrorToErrorBox($"{currentAccount.AccountName} Error: {ex.Message}");
+                if (!attemptRefreshLogin) return false;
+                return await RefreshAccountSession(account, false);
+            }
             catch (SteamGuardAccount.WGTokenExpiredException)
             {
                 if (!attemptRefreshLogin) return false;
 
                 PromptRefreshLogin(account);
 
-                return await RefreshAccountSession(account, false);
+                return await RefreshAccountSession(account, true);
             }
         }
 
@@ -624,8 +691,8 @@ namespace Steam_Desktop_Authenticator
                 listAccounts.SelectedIndex = 0;
                 trayAccountList.SelectedIndex = 0;
 
-                listAccounts.Sorted = true;
-                trayAccountList.Sorted = true;
+                listAccounts.Sorted = false;
+                trayAccountList.Sorted = false;
             }
             menuDeactivateAuthenticator.Enabled = btnTradeConfirmations.Enabled = allAccounts.Length > 0;
         }

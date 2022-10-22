@@ -30,6 +30,9 @@ namespace Steam_Desktop_Authenticator
         [JsonProperty("periodic_checking_checkall")]
         public bool CheckAllAccounts { get; set; } = false;
 
+        [JsonProperty("minute_error_interval")]
+        public int MinuteErrorInterval { get; set; } = 30;
+
         [JsonProperty("auto_confirm_market_transactions")]
         public bool AutoConfirmMarketTransactions { get; set; } = false;
 
@@ -96,6 +99,7 @@ namespace Steam_Desktop_Authenticator
             newManifest.Encrypted = false;
             newManifest.PeriodicCheckingInterval = 5;
             newManifest.PeriodicChecking = false;
+            newManifest.MinuteErrorInterval = 30;
             newManifest.AutoConfirmMarketTransactions = false;
             newManifest.AutoConfirmTrades = false;
             newManifest.Entries = new List<ManifestEntry>();
